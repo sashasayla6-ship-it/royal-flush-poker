@@ -1,0 +1,84 @@
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const app = express();
+app.use(cors());
+app.use(express.json());
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+const rooms = {};
+const users = {};
+function createDeck(){const suits=["S","H","D","C"];const ranks=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];let deck=[];suits.forEach(s=>ranks.forEach(r=>deck.push({rank:r,suit:s})));for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}return deck;}
+function startRound(roomId){
+const r=rooms[roomId];
+if(!r||r.players.length<2||r.started)return;
+r.started=true;
+r.deck=createDeck();
+r.community=[];
+r.pot=0;
+r.phase="preflop";
+r.dealer=r.dealer===undefined?0:(r.dealer+1)%r.players.length;
+r.currentTurn=(r.dealer+1)%r.players.length;
+r.players.forEach(p=>{p.hand=[r.deck.pop(),r.deck.pop()];p.folded=false;p.bet=0;});
+io.to(roomId).emit("game_started",{players:r.players,dealer:r.dealer,pot:r.pot});
+setTimeout(()=>{if(rooms[roomId])io.to(roomId).emit("turn_update",{username:r.players[r.currentTurn].username});},500);
+}
+app.post("/api/register",(req,res)=>{
+const {username,password}=req.body;
+if(!username||!password)return res.json({error:"Нэр нууц үг оруулна уу"});
+if(users[username])return res.json({error:"Нэр давхцаж байна"});
+users[username]={password,chips:10000,games:0,wins:0};
+res.json({ok:true,username,chips:10000,games:0,wins:0});
+});
+app.post("/api/login",(req,res)=>{
+const {username,password}=req.body;
+const u=users[username];
+if(!u||u.password!==password)return res.json({error:"Буруу нэр/нууц үг"});
+res.json({ok:true,username,chips:u.chips,games:u.games||0,wins:u.wins||0});
+});
+io.on("connection",socket=>{
+console.log("connected:",socket.id);
+socket.on("join_room",({room,username,seat})=>{
+socket.join(room);
+if(!rooms[room])rooms[room]={players:[],deck:[],pot:0,community:[],phase:"waiting",started:false,max:6,seats:{}};
+const r=rooms[room];
+const ex=r.players.find(p=>p.username===username);
+if(!ex){
+const seatNum=seat||Object.keys(r.seats).length+1;
+r.seats[seatNum]=username;
+r.players.push({id:socket.id,username,chips:1000,hand:[],folded:false,bet:0,seat:seatNum});
+}else{ex.id=socket.id;}
+io.to(room).emit("room_update",{players:r.players,seats:r.seats,max:r.max,phase:r.phase});
+if(r.players.length>=2&&!r.started){
+setTimeout(()=>{if(rooms[room]&&rooms[room].players.length>=2&&!rooms[room].started){startRound(room);}},1500);
+}
+});
+socket.on("request_seat",({room,username,seat})=>{
+const r=rooms[room];
+if(!r)return;
+if(r.seats[seat]){socket.emit("seat_taken");return;}
+socket.emit("seat_ok",{seat});
+});
+socket.on("action",({room,action,amount,username})=>{
+const r=rooms[room];
+if(!r)return;
+if(action==="fold"){const p=r.players.find(x=>x.username===username);if(p)p.folded=true;io.to(room).emit("player_action",{username,action:"fold"});}
+if(action==="call"||action==="raise"){r.pot+=(amount||100);io.to(room).emit("player_action",{username,action,amount,pot:r.pot});}
+if(action==="check"){io.to(room).emit("player_action",{username,action:"check"});}
+if(action==="deal_flop"&&r.community.length===0){r.community=[r.deck.pop(),r.deck.pop(),r.deck.pop()];r.phase="flop";io.to(room).emit("community_update",r.community);}
+if(action==="deal_turn"&&r.community.length===3){r.community.push(r.deck.pop());r.phase="turn";io.to(room).emit("community_update",r.community);}
+if(action==="deal_river"&&r.community.length===4){r.community.push(r.deck.pop());r.phase="river";io.to(room).emit("community_update",r.community);}
+if(r.players.length>0){r.currentTurn=(r.currentTurn+1)%r.players.length;io.to(room).emit("turn_update",{username:r.players[r.currentTurn].username});}
+});
+socket.on("disconnect",()=>{
+Object.keys(rooms).forEach(roomId=>{
+const r=rooms[roomId];
+const p=r.players.find(x=>x.id===socket.id);
+if(p){Object.keys(r.seats).forEach(s=>{if(r.seats[s]===p.username)delete r.seats[s];});r.players=r.players.filter(x=>x.id!==socket.id);}
+if(r.players.length<2){r.started=false;r.phase="waiting";}
+io.to(roomId).emit("room_update",{players:r.players,seats:r.seats,max:r.max,phase:r.phase});
+});
+});
+});
+server.listen(3001,"0.0.0.0",()=>console.log("Server: http://localhost:3001"));app.use(require('express').static('../client'));
