@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const url = 'https://royal-flush-poker-api.onrender.com';
+const html = `<!DOCTYPE html>
 <html lang="mn"><head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Royal Flush Poker</title>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></scr${'ipt>'}
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -497,7 +499,7 @@ async function doAuth(){
   if(!u||!p){document.getElementById('auth-err').textContent='Нэр болон нууц үгээ оруулна уу';return;}
   document.getElementById('auth-btn').textContent='...';
   try{
-    const res=await fetch('https://royal-flush-poker-api.onrender.com/api/'+authTab,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const res=await fetch('${url}/api/'+authTab,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
     const data=await res.json();
     if(data.error){document.getElementById('auth-err').textContent=data.error;document.getElementById('auth-btn').textContent=authTab==='login'?'НЭВТРЭХ':'БҮРТГҮҮЛЭХ';return;}
     user=data;gamesPlayed=data.games||0;gamesWon=data.wins||0;
@@ -513,7 +515,7 @@ function renderTables(filter){
   const filtered=filter==='all'?TABLES:TABLES.filter(t=>t.type===filter||t.mode===filter);
   list.innerHTML=filtered.map(t=>{
     const seats=Array(t.max).fill(0).map((_,i)=>'<div class="seat'+(i<t.players?' on':'')+'"></div>').join('');
-    return '<div class="tcard" onclick="openJoinModal(''+t.id+'')">'+
+    return '<div class="tcard" onclick="openJoinModal(\''+t.id+'\')">'+
       '<div class="tcard-header"><div class="tcard-name">'+t.name+'</div><div class="mbadge '+(t.mode==='virtual'?'virtual':'real')+'">'+(t.mode==='virtual'?'Virtual':'💰 Жинхэнэ')+'</div></div>'+
       '<div class="tcard-body"><div class="tinfo"><div class="tinfo-label">Төрөл</div><div class="tinfo-val">'+t.type+'</div></div><div class="tinfo"><div class="tinfo-label">Блайнд</div><div class="tinfo-val">'+t.blind+'</div></div><div class="tinfo"><div class="tinfo-label">Тоглогч</div><div class="tinfo-val">'+t.players+'/'+t.max+'</div></div></div>'+
       '<div class="tcard-footer"><div class="seat-row">'+seats+'<span class="seat-count">'+t.players+'/'+t.max+'</span></div><button class="join-btn">Нэгдэх →</button></div></div>';
@@ -568,7 +570,7 @@ function renderTableSeats(players,max){
   }
 }
 function initSocket(){
-  socket=io('https://royal-flush-poker-api.onrender.com');
+  socket=io('${url}');
   socket.on('room_update',r=>{
     if(!takenSeats[curRoom])takenSeats[curRoom]={};
     r.players.forEach(p=>{if(p.seat)takenSeats[curRoom][p.seat]=p.username;});
@@ -603,4 +605,7 @@ function updateRaise(v){document.getElementById('raise-val').textContent=Number(
 function selAmt(el,amt){document.querySelectorAll('.apill').forEach(p=>p.classList.remove('active'));el.classList.add('active');selAmount=amt;}
 function selPay(el,method){document.querySelectorAll('.pay-method').forEach(p=>p.classList.remove('selected'));el.classList.add('selected');document.querySelectorAll('.pay-radio').forEach(r=>r.classList.remove('on'));const r=document.getElementById('radio-'+method);if(r)r.classList.add('on');selPayMethod=method;}
 function doDeposit(){const m={qpay:'QPay',social:'SocialPay',khan:'Khan Bank',visa:'Visa/Mastercard'};alert('✅ '+Number(selAmount).toLocaleString()+'₮ '+m[selPayMethod]+'-аар цэнэглэлт илгээгдлээ!');}
-</script></body></html>
+</script></body></html>`;
+
+fs.writeFileSync('index.html', html);
+console.log('Done! Size:', html.length);
