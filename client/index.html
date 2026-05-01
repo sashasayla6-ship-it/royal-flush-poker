@@ -218,7 +218,7 @@ input::placeholder{color:#222;}
 </style></head><body>
 
 <!-- LOADING -->
-<div class="page active" id="page-loading" style="display:none!important" style="display:none!important">
+<div class="page active" id="page-loading">
 <div class="loading-screen">
 <div class="loading-bg"></div>
 <div class="loading-particles" id="particles"></div>
@@ -232,7 +232,7 @@ input::placeholder{color:#222;}
 </div>
 
 <!-- MAIN (AUTH) -->
-<div class="page" id="page-main" class="page active">
+<div class="page" id="page-main">
 <div class="main-bg">
 <div class="main-hero">
 <div class="hero-suits">♠♥♦♣</div>
@@ -357,7 +357,7 @@ input::placeholder{color:#222;}
 <div class="deposit-title">💳 Цэнэглэх</div>
 <div class="amount-pills">
 <div class="apill active" onclick="selAmt(this,10000)">₮10,000</div>
-<div class="apill" onclick="selAmt(this,15000)">₮25,000</div>
+<div class="apill" onclick="selAmt(this,25000)">₮25,000</div>
 <div class="apill" onclick="selAmt(this,50000)">₮50,000</div>
 <div class="apill" onclick="selAmt(this,100000)">₮100,000</div>
 </div>
@@ -450,12 +450,12 @@ const TABLES=[
 let user=null,curRoom=null,curTable=null,socket=null,logItems=[],authTab='login',gamesPlayed=0,gamesWon=0,selAmount=10000,selPayMethod='qpay',selectedSeat=null,takenSeats={},onlineCount=0;
 
 // LOADING
-window.onload=function(){showPage("main");return;
+window.onload=function(){
   createParticles();
   setTimeout(()=>{
     showPage('main');
     animateOnlineCount();
-  },1500);
+  },2500);
 };
 
 function createParticles(){
