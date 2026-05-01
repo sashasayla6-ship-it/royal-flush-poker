@@ -450,7 +450,7 @@ const TABLES=[
 let user=null,curRoom=null,curTable=null,socket=null,logItems=[],authTab='login',gamesPlayed=0,gamesWon=0,selAmount=10000,selPayMethod='qpay',selectedSeat=null,takenSeats={},onlineCount=0;
 
 // LOADING
-window.onload=function(){
+window.onload=function(){showPage("main");return;
   createParticles();
   setTimeout(()=>{
     showPage('main');
